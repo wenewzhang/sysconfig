@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cargo build --release
+
+override_dh_auto_install:
+	install -D -m 755 target/release/sysconfig debian/sysconfig/usr/local/bin/sysconfig
+	install -D -m 644 systemd/getty@tty1.service.d/override.conf debian/sysconfig/etc/systemd/system/getty@tty1.service.d/override.conf
+	install -D -m 440 debian/sysconfig.sudoers debian/sysconfig/etc/sudoers.d/sysconfig
+
+override_dh_auto_clean:
+	cargo clean || true

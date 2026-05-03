@@ -1,0 +1,9 @@
+[package]
+name = "sysconfig"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dialoguer = "0.11"
+console = "0.15"
+libc = "0.2"

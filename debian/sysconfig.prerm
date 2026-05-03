@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        # Remove the auto-start block from .bash_profile
+        BASH_PROFILE="/home/sysconfig/.bash_profile"
+        if [ -f "$BASH_PROFILE" ]; then
+            sed -i '/# Auto-start sysconfig (only on tty1)/,/^fi$/d' "$BASH_PROFILE"
+        fi
+    ;;
+
+    failed-upgrade)
+    ;;
+
+    *)
+        echo "prerm called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

@@ -1,0 +1,29 @@
+Source: sysconfig
+Section: admin
+Priority: optional
+Maintainer: Your Name <your@email.com>
+Build-Depends: debhelper (>= 13),
+               cargo,
+               rustc
+Standards-Version: 4.6.2
+Homepage: <fill in>
+
+Package: sysconfig
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         systemd,
+         sudo,
+         iproute2
+Description: System management tool for Debian after automatic login
+ A TUI-based system management tool designed to run after automatic
+ login on tty1.
+ .
+ Features:
+  - Configure static IP for network interfaces (with systemd-networkd
+    persistence)
+  - Reboot the system
+  - Power off the system
+ .
+ Auto-login on tty1 is configured via a systemd getty drop-in override.
+ The dedicated auto-login user runs this tool via passwordless sudo.

@@ -1,0 +1,50 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Create the sysconfig auto-login user if it does not already exist
+        if ! id sysconfig >/dev/null 2>&1; then
+            useradd -m -s /bin/bash sysconfig
+        fi
+
+        # Add auto-start block to .bash_profile if not already present
+        BASH_PROFILE="/home/sysconfig/.bash_profile"
+        if [ -f "$BASH_PROFILE" ]; then
+            if ! grep -q "Auto-start sysconfig" "$BASH_PROFILE" 2>/dev/null; then
+                cat >> "$BASH_PROFILE" <<'EOF'
+
+# Auto-start sysconfig (only on tty1)
+if [[ $(tty) == /dev/tty1 ]]; then
+    sudo /usr/local/bin/sysconfig
+fi
+EOF
+            fi
+        else
+            cat > "$BASH_PROFILE" <<'EOF'
+# Auto-start sysconfig (only on tty1)
+if [[ $(tty) == /dev/tty1 ]]; then
+    sudo /usr/local/bin/sysconfig
+fi
+EOF
+            chown sysconfig:sysconfig "$BASH_PROFILE"
+        fi
+
+        # Reload systemd so the getty drop-in is picked up
+        if [ -d /run/systemd/system ]; then
+            systemctl daemon-reload
+        fi
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

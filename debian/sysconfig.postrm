@@ -1,0 +1,45 @@
+#!/bin/sh
+set -e
+
+systemd_reload() {
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload
+    fi
+}
+
+case "$1" in
+    purge)
+        # Remove the sysconfig user and its home directory
+        if id sysconfig >/dev/null 2>&1; then
+            userdel -r sysconfig 2>/dev/null || true
+        fi
+
+        # Clean up empty getty drop-in directory
+        if [ -d /etc/systemd/system/getty@tty1.service.d ]; then
+            rmdir /etc/systemd/system/getty@tty1.service.d 2>/dev/null || true
+        fi
+
+        systemd_reload
+    ;;
+
+    remove)
+        # Clean up empty getty drop-in directory
+        if [ -d /etc/systemd/system/getty@tty1.service.d ]; then
+            rmdir /etc/systemd/system/getty@tty1.service.d 2>/dev/null || true
+        fi
+
+        systemd_reload
+    ;;
+
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    ;;
+
+    *)
+        echo "postrm called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

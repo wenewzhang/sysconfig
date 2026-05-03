@@ -1,0 +1,6 @@
+sysconfig ALL=(root) NOPASSWD: /usr/local/bin/sysconfig
+sysconfig ALL=(root) NOPASSWD: /sbin/ip
+sysconfig ALL=(root) NOPASSWD: /usr/bin/systemctl restart systemd-networkd
+sysconfig ALL=(root) NOPASSWD: /usr/bin/systemctl enable systemd-networkd
+sysconfig ALL=(root) NOPASSWD: /sbin/reboot
+sysconfig ALL=(root) NOPASSWD: /sbin/poweroff

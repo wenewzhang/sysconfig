@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: sysconfig
+Upstream-Contact: <fill in>
+Source: <fill in>
+
+Files: *
+Copyright: 2026 <fill in>
+License: <fill in>
