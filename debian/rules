@@ -6,7 +6,7 @@ export DH_VERBOSE = 1
 	dh $@
 
 override_dh_auto_build:
-	cargo build --release
+	 [ -f "$$HOME/.cargo/env" ] && . "$$HOME/.cargo/env"; cargo build --release
 
 override_dh_auto_install:
 	install -D -m 755 target/release/sysconfig debian/sysconfig/usr/local/bin/sysconfig
@@ -14,4 +14,4 @@ override_dh_auto_install:
 	install -D -m 440 debian/sysconfig.sudoers debian/sysconfig/etc/sudoers.d/sysconfig
 
 override_dh_auto_clean:
-	cargo clean || true
+	 [ -f "$$HOME/.cargo/env" ] && . "$$HOME/.cargo/env"; cargo clean || true
