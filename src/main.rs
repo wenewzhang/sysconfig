@@ -117,6 +117,69 @@ fn set_static_ip() -> Result<(), Box<dyn std::error::Error>> {
 
     persist_systemd_networkd(iface, &ip, &mask, &gateway, &dns)?;
 
+    if let Err(e) = update_zuti_env(&ip) {
+        println!("Warning: Failed to update zuti env: {}", e);
+    }
+
+    if let Err(e) = update_webui(&ip) {
+        println!("Warning: Failed to update webui: {}", e);
+    }
+
+    Ok(())
+}
+
+fn update_zuti_env(ip: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let zuti_env = Path::new("/etc/zuti/.env");
+    if !zuti_env.exists() {
+        println!("  Zuti .env file not found, skipping");
+        return Ok(());
+    }
+
+    let content = fs::read_to_string(zuti_env)?;
+    let new_content = content
+        .lines()
+        .map(|line| {
+            if line.trim().starts_with("SERVER_ADDRESS=") {
+                format!("SERVER_ADDRESS={}", ip)
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    fs::write(zuti_env, new_content)?;
+    println!("✓ Updated zuti SERVER_ADDRESS to {}", ip);
+    Ok(())
+}
+
+fn update_webui(ip: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let src = Path::new("/etc/nginx/sites-available/webui");
+    if !src.exists() {
+        println!("  Webui config not found, skipping");
+        return Ok(());
+    }
+
+    let enable_src = Path::new("/etc/nginx/sites-available/webui-enable");
+    let enable_link = Path::new("/etc/nginx/sites-enabled/webui");
+
+    // Copy to webui-enable
+    fs::copy(src, enable_src)?;
+
+    // Replace 127.0.0.1:8443 with IP:8443
+    let content = fs::read_to_string(enable_src)?;
+    let new_content = content.replace("127.0.0.1:8443", &format!("{}:8443", ip));
+    fs::write(enable_src, new_content)?;
+
+    // Remove old symlink if exists
+    if enable_link.exists() {
+        fs::remove_file(enable_link)?;
+    }
+
+    // Create symlink
+    std::os::unix::fs::symlink(enable_src, enable_link)?;
+
+    println!("✓ Updated webui nginx config and enabled");
     Ok(())
 }
 
