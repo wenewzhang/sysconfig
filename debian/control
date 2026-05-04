@@ -2,7 +2,7 @@ Source: sysconfig
 Section: admin
 Priority: optional
 Maintainer: Your Name <your@email.com>
-Build-Depends: debhelper (>= 13)
+Build-Depends: debhelper (>= 13), debhelper-compat (= 13)
 Standards-Version: 4.6.2
 Homepage: <fill in>
 
