@@ -12,21 +12,21 @@ case "$1" in
         BASH_PROFILE="/home/sysconfig/.bash_profile"
         if [ -f "$BASH_PROFILE" ]; then
             if ! grep -q "Auto-start sysconfig" "$BASH_PROFILE" 2>/dev/null; then
-                cat >> "$BASH_PROFILE" <<'EOF'
+                cat >> "$BASH_PROFILE" <<'BASH_EOF'
 
 # Auto-start sysconfig (only on tty1)
 if [[ $(tty) == /dev/tty1 ]]; then
     sudo /usr/local/bin/sysconfig
 fi
-EOF
+BASH_EOF
             fi
         else
-            cat > "$BASH_PROFILE" <<'EOF'
+            cat > "$BASH_PROFILE" <<'BASH_EOF'
 # Auto-start sysconfig (only on tty1)
 if [[ $(tty) == /dev/tty1 ]]; then
     sudo /usr/local/bin/sysconfig
 fi
-EOF
+BASH_EOF
             chown sysconfig:sysconfig "$BASH_PROFILE"
         fi
 
