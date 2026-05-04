@@ -16,7 +16,7 @@ case "$1" in
 
 # Auto-start sysconfig (only on tty1)
 if [[ $(tty) == /dev/tty1 ]]; then
-    sudo /usr/local/bin/sysconfig
+    sudo /usr/bin/sysconfig
 fi
 BASH_EOF
             fi
@@ -24,7 +24,7 @@ BASH_EOF
             cat > "$BASH_PROFILE" <<'BASH_EOF'
 # Auto-start sysconfig (only on tty1)
 if [[ $(tty) == /dev/tty1 ]]; then
-    sudo /usr/local/bin/sysconfig
+    sudo /usr/bin/sysconfig
 fi
 BASH_EOF
             chown sysconfig:sysconfig "$BASH_PROFILE"
