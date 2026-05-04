@@ -42,32 +42,14 @@ fn set_static_ip() -> Result<(), Box<dyn std::error::Error>> {
         })
         .interact_text()?;
 
-    let mask: String = Input::with_theme(&ColorfulTheme::default())
-        .with_prompt("Enter subnet mask prefix (1-31)")
-        .default("24".to_string())
-        .validate_with(|input: &String| {
-            match input.parse::<u8>() {
-                Ok(n) if n >= 1 && n <= 31 => Ok(()),
-                _ => Err("Please enter a number between 1 and 31"),
-            }
-        })
-        .interact_text()?;
+    let mask = "24".to_string();
 
-    let gateway: String = Input::with_theme(&ColorfulTheme::default())
-        .with_prompt("Enter default gateway (e.g., 192.168.1.1)")
-        .validate_with(|input: &String| {
-            if input.parse::<std::net::Ipv4Addr>().is_ok() {
-                Ok(())
-            } else {
-                Err("Please enter a valid IPv4 address")
-            }
-        })
-        .interact_text()?;
+    let gateway = {
+        let parts: Vec<&str> = ip.split('.').collect();
+        format!("{}.{}.{}.1", parts[0], parts[1], parts[2])
+    };
 
-    let dns: String = Input::with_theme(&ColorfulTheme::default())
-        .with_prompt("Enter DNS server (e.g., 223.5.5.5, press Enter to skip)")
-        .allow_empty(true)
-        .interact_text()?;
+    let dns = gateway.clone();
 
     println!("\nApplying network configuration...");
 
@@ -133,14 +115,7 @@ fn set_static_ip() -> Result<(), Box<dyn std::error::Error>> {
         println!("  DNS: {}", dns);
     }
 
-    // Persist configuration
-    if Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt("Persist configuration to systemd-networkd (survives reboot)?")
-        .default(true)
-        .interact()?
-    {
-        persist_systemd_networkd(iface, &ip, &mask, &gateway, &dns)?;
-    }
+    persist_systemd_networkd(iface, &ip, &mask, &gateway, &dns)?;
 
     Ok(())
 }
