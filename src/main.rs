@@ -226,6 +226,124 @@ fn persist_systemd_networkd(
     Ok(())
 }
 
+fn get_local_ipv4_addrs() -> Vec<String> {
+    let mut addrs = Vec::new();
+    if let Ok(entries) = fs::read_dir("/sys/class/net/") {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name == "lo" {
+                continue;
+            }
+            if let Ok(output) = Command::new("ip")
+                .args(["-4", "-o", "addr", "show", &name])
+                .output()
+            {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for line in stdout.lines() {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() >= 4 {
+                        let addr = parts[3].split('/').next().unwrap_or(parts[3]);
+                        if addr.parse::<std::net::Ipv4Addr>().is_ok() {
+                            addrs.push(addr.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    addrs
+}
+
+fn show_nginx_status() {
+    let status = Command::new("systemctl")
+        .args(["is-active", "--quiet", "nginx"])
+        .status();
+
+    let is_active = match status {
+        Ok(s) => s.success(),
+        Err(e) => {
+            println!("Failed to check nginx status: {}", e);
+            return;
+        }
+    };
+
+    if !is_active {
+        println!("Nginx status: inactive");
+        return;
+    }
+
+    println!("Nginx status: active");
+
+    let output = match Command::new("ss").args(["-tlnp"]).output() {
+        Ok(o) => o,
+        Err(_) => {
+            println!("Failed to get nginx listening info");
+            return;
+        }
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let local_ips = get_local_ipv4_addrs();
+    let mut printed = Vec::new();
+
+    for line in stdout.lines() {
+        if line.contains("nginx") {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if let Some(local_addr) = parts.get(3) {
+                if let Some((ip, port_str)) = local_addr.rsplit_once(':') {
+                    let ip = ip.trim_start_matches('[').trim_end_matches(']');
+                    let port = match port_str.parse::<u16>() {
+                        Ok(p) => p,
+                        Err(_) => continue,
+                    };
+
+                    let is_wildcard = ip == "0.0.0.0" || ip == "*" || ip == "::";
+
+                    if is_wildcard {
+                        if local_ips.is_empty() {
+                            let url = match port {
+                                443 | 8443 => format!("https://localhost"),
+                                80 => format!("http://localhost"),
+                                _ => format!("http://localhost:{}", port),
+                            };
+                            if !printed.contains(&url) {
+                                println!("WebUI is listening at: {}", url);
+                                printed.push(url);
+                            }
+                        } else {
+                            for addr in &local_ips {
+                                let url = match port {
+                                    443 | 8443 => format!("https://{}", addr),
+                                    80 => format!("http://{}", addr),
+                                    _ => format!("http://{}:{}", addr, port),
+                                };
+                                if !printed.contains(&url) {
+                                    println!("WebUI is listening at: {}", url);
+                                    printed.push(url);
+                                }
+                            }
+                        }
+                    } else {
+                        let url = match port {
+                            443 | 8443 => format!("https://{}", ip),
+                            80 => format!("http://{}", ip),
+                            _ => format!("http://{}:{}", ip, port),
+                        };
+                        if !printed.contains(&url) {
+                            println!("WebUI is listening at: {}", url);
+                            printed.push(url);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if printed.is_empty() {
+        println!("No nginx listening addresses found");
+    }
+}
+
 fn reboot_system() {
     println!("Rebooting system...");
     let _ = Command::new("reboot").status();
@@ -244,6 +362,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Warning: This program requires root privileges to work properly");
         println!("Please run with sudo or configure passwordless sudo\n");
     }
+
+    show_nginx_status();
+    println!();
 
     loop {
         let _ = term.clear_screen();
