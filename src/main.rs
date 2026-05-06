@@ -364,15 +364,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Please run with sudo or configure passwordless sudo\n");
     }
 
-    show_nginx_status();
     loop {
         let _ = term.clear_screen();
 
+        show_nginx_status();
+        println!();
+        
         let options = vec![
             "Set Manual IP for Network Interface",
             "Reboot System",
             "Power Off",
-            "Exit",
+            "Exit(Login root by: su -)",
         ];
 
         let selection = Select::with_theme(&ColorfulTheme::default())
