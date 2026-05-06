@@ -150,6 +150,17 @@ fn update_zuti_env(ip: &str) -> Result<(), Box<dyn std::error::Error>> {
 
     fs::write(zuti_env, new_content)?;
     println!("✓ Updated zuti SERVER_ADDRESS to {}", ip);
+
+    let status = Command::new("systemctl")
+        .args(["restart", "zuti"])
+        .status()?;
+
+    if status.success() {
+        println!("✓ Zuti service restarted");
+    } else {
+        println!("Warning: systemctl restart zuti failed");
+    }
+
     Ok(())
 }
 
@@ -180,6 +191,17 @@ fn update_webui(ip: &str) -> Result<(), Box<dyn std::error::Error>> {
     std::os::unix::fs::symlink(enable_src, enable_link)?;
 
     println!("✓ Updated webui nginx config and enabled");
+
+    let status = Command::new("systemctl")
+        .args(["restart", "nginx"])
+        .status()?;
+
+    if status.success() {
+        println!("✓ Nginx service restarted");
+    } else {
+        println!("Warning: systemctl restart nginx failed");
+    }
+
     Ok(())
 }
 
