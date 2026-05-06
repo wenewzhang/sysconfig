@@ -186,41 +186,42 @@ fn update_webui(ip: &str) -> Result<(), Box<dyn std::error::Error>> {
 fn persist_systemd_networkd(
     iface: &str,
     ip: &str,
-    mask: &str,
+    _mask: &str,
     gateway: &str,
     dns: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let dns_line = if dns.is_empty() {
-        String::new()
-    } else {
-        format!("DNS={}\n", dns)
-    };
+    let interfaces_path = "/etc/network/interfaces";
+    let backup_path = "/etc/network/interfaces.260505";
 
-    let config = format!(
-        "[Match]\nName={}\n\n[Network]\nAddress={}/{}\nGateway={}\n{}\n",
-        iface, ip, mask, gateway, dns_line
-    );
-
-    let network_dir = Path::new("/etc/systemd/network");
-    if !network_dir.exists() {
-        fs::create_dir_all(network_dir)?;
+    // 1. Backup existing /etc/network/interfaces
+    if Path::new(interfaces_path).exists() {
+        fs::copy(interfaces_path, backup_path)?;
     }
 
-    let config_path = network_dir.join(format!("10-{}.network", iface));
-    fs::write(&config_path, config)?;
+    // 2. Build new /etc/network/interfaces content
+    let mut content = String::new();
+    content.push_str("source /etc/network/interfaces.d/*\n");
+    content.push_str("auto lo\n");
+    content.push_str("iface lo inet loopback\n");
+    content.push_str(&format!("auto {}\n", iface));
+    content.push_str(&format!("iface {} inet static\n", iface));
+    content.push_str(&format!("address {}\n", ip));
+    content.push_str("netmask 255.255.255.0\n");
+    content.push_str(&format!("gateway {}\n", gateway));
+    content.push_str(&format!("dns-nameservers {}\n", dns));
 
-    // Enable and restart systemd-networkd
-    let _ = Command::new("systemctl")
-        .args(["enable", "systemd-networkd"])
-        .status();
+    fs::write(interfaces_path, content)?;
+
+    println!("✓ Configuration persisted to {}", interfaces_path);
+
     let status = Command::new("systemctl")
-        .args(["restart", "systemd-networkd"])
+        .args(["restart", "networking"])
         .status()?;
 
     if status.success() {
-        println!("✓ Configuration persisted to {:?}", config_path);
+        println!("✓ Networking service restarted");
     } else {
-        println!("Warning: systemd-networkd restart failed; configuration written but may not be active");
+        println!("Warning: systemctl restart networking failed");
     }
 
     Ok(())
