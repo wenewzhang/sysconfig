@@ -2,5 +2,7 @@ sysconfig ALL=(root) NOPASSWD: /usr/bin/sysconfig
 sysconfig ALL=(root) NOPASSWD: /sbin/ip
 sysconfig ALL=(root) NOPASSWD: /usr/bin/systemctl restart systemd-networkd
 sysconfig ALL=(root) NOPASSWD: /usr/bin/systemctl enable systemd-networkd
+sysconfig ALL=(root) NOPASSWD: /usr/bin/systemctl is-active --quiet nginx
+sysconfig ALL=(root) NOPASSWD: /usr/bin/systemctl restart networking
 sysconfig ALL=(root) NOPASSWD: /sbin/reboot
 sysconfig ALL=(root) NOPASSWD: /sbin/poweroff

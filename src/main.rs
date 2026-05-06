@@ -140,7 +140,7 @@ fn update_zuti_env(ip: &str) -> Result<(), Box<dyn std::error::Error>> {
         .lines()
         .map(|line| {
             if line.trim().starts_with("SERVER_ADDRESS=") {
-                format!("SERVER_ADDRESS={}", ip)
+                format!("SERVER_ADDRESS={}:8443", ip)
             } else {
                 line.to_string()
             }
@@ -365,8 +365,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     show_nginx_status();
-    println!();
-
     loop {
         let _ = term.clear_screen();
 
