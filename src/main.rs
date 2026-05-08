@@ -53,6 +53,13 @@ fn set_static_ip() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\nApplying network configuration...");
 
+    let status = Command::new("ifdown")
+        .args([iface, "--force"])
+        .status()?;
+    if !status.success() {
+        println!("Warning: Failed to ifdown iface: {}", iface);
+    }
+
     // Clear existing IP addresses on the interface
     let status = Command::new("ip")
         .args(["addr", "flush", "dev", iface])
@@ -61,51 +68,51 @@ fn set_static_ip() -> Result<(), Box<dyn std::error::Error>> {
         println!("Warning: Failed to clear old IP address");
     }
 
-    // Add new IP
-    let cidr = format!("{}/{}", ip, mask);
-    let status = Command::new("ip")
-        .args(["addr", "add", &cidr, "dev", iface])
-        .status()?;
-    if !status.success() {
-        println!("Error: Failed to set IP address");
-        return Ok(());
-    }
+    // // Add new IP
+    // let cidr = format!("{}/{}", ip, mask);
+    // let status = Command::new("ip")
+    //     .args(["addr", "add", &cidr, "dev", iface])
+    //     .status()?;
+    // if !status.success() {
+    //     println!("Error: Failed to set IP address");
+    //     return Ok(());
+    // }
 
     // Bring interface up
-    let _ = Command::new("ip")
-        .args(["link", "set", iface, "up"])
-        .status();
+    // let _ = Command::new("ip")
+    //     .args(["link", "set", iface, "up"])
+    //     .status();
 
-    // Add default route
-    let status = Command::new("ip")
-        .args(["route", "add", "default", "via", &gateway])
-        .status();
-    if let Ok(st) = status {
-        if !st.success() {
-            // Try replacing existing default route
-            let _ = Command::new("ip")
-                .args(["route", "replace", "default", "via", &gateway])
-                .status();
-        }
-    }
+    // // Add default route
+    // let status = Command::new("ip")
+    //     .args(["route", "add", "default", "via", &gateway])
+    //     .status();
+    // if let Ok(st) = status {
+    //     if !st.success() {
+    //         // Try replacing existing default route
+    //         let _ = Command::new("ip")
+    //             .args(["route", "replace", "default", "via", &gateway])
+    //             .status();
+    //     }
+    // }
 
-    // Set DNS (if provided)
-    if !dns.is_empty() {
-        let resolv_entry = format!("nameserver {}\n", dns);
-        if let Ok(mut existing) = fs::read_to_string("/etc/resolv.conf") {
-            // Remove old nameserver lines for this interface (simple handling)
-            existing = existing
-                .lines()
-                .filter(|line| !line.trim().starts_with("nameserver"))
-                .collect::<Vec<_>>()
-                .join("\n");
-            existing.push('\n');
-            existing.push_str(&resolv_entry);
-            let _ = fs::write("/etc/resolv.conf", existing);
-        } else {
-            let _ = fs::write("/etc/resolv.conf", resolv_entry);
-        }
-    }
+    // // Set DNS (if provided)
+    // if !dns.is_empty() {
+    //     let resolv_entry = format!("nameserver {}\n", dns);
+    //     if let Ok(mut existing) = fs::read_to_string("/etc/resolv.conf") {
+    //         // Remove old nameserver lines for this interface (simple handling)
+    //         existing = existing
+    //             .lines()
+    //             .filter(|line| !line.trim().starts_with("nameserver"))
+    //             .collect::<Vec<_>>()
+    //             .join("\n");
+    //         existing.push('\n');
+    //         existing.push_str(&resolv_entry);
+    //         let _ = fs::write("/etc/resolv.conf", existing);
+    //     } else {
+    //         let _ = fs::write("/etc/resolv.conf", resolv_entry);
+    //     }
+    // }
 
     println!("\n✓ Network configuration applied:");
     println!("  Interface: {}", iface);
@@ -325,8 +332,8 @@ fn show_nginx_status() {
                     if is_wildcard {
                         if local_ips.is_empty() {
                             let url = match port {
-                                443 | 8443 => format!("https://localhost"),
-                                80 => format!("http://localhost"),
+                                443 | 8443 => "https://localhost".to_string(),
+                                80 => "http://localhost".to_string(),
                                 _ => format!("http://localhost:{}", port),
                             };
                             if !printed.contains(&url) {
