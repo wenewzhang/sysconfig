@@ -215,42 +215,35 @@ fn update_webui(ip: &str) -> Result<(), Box<dyn std::error::Error>> {
 fn persist_systemd_networkd(
     iface: &str,
     ip: &str,
-    _mask: &str,
+    mask: &str,
     gateway: &str,
-    dns: &str,
+    _dns: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let interfaces_path = "/etc/network/interfaces";
-    let backup_path = "/etc/network/interfaces.260505";
+    let network_dir = "/etc/systemd/network";
+    let network_file = format!("{}/10-{}.network", network_dir, iface);
 
-    // 1. Backup existing /etc/network/interfaces
-    if Path::new(interfaces_path).exists() {
-        fs::copy(interfaces_path, backup_path)?;
-    }
+    // 1. Ensure /etc/systemd/network exists
+    fs::create_dir_all(network_dir)?;
 
-    // 2. Build new /etc/network/interfaces content
-    let mut content = String::new();
-    content.push_str("source /etc/network/interfaces.d/*\n");
-    content.push_str("auto lo\n");
-    content.push_str("iface lo inet loopback\n");
-    content.push_str(&format!("auto {}\n", iface));
-    content.push_str(&format!("iface {} inet static\n", iface));
-    content.push_str(&format!("address {}\n", ip));
-    content.push_str("netmask 255.255.255.0\n");
-    content.push_str(&format!("gateway {}\n", gateway));
-    content.push_str(&format!("dns-nameservers {}\n", dns));
+    // 2. Build systemd-networkd configuration content
+    let content = format!(
+        "[Match]\nName={}\n\n[Network]\nAddress={}/{}\nGateway={}\nDNS={}\nDNS=8.8.8.8\nDNS=114.114.114.114\n",
+        iface, ip, mask, gateway, gateway
+    );
 
-    fs::write(interfaces_path, content)?;
+    fs::write(&network_file, content)?;
 
-    println!("✓ Configuration persisted to {}", interfaces_path);
+    println!("✓ Configuration persisted to {}", network_file);
 
+    // 3. Restart systemd-networkd
     let status = Command::new("systemctl")
-        .args(["restart", "networking"])
+        .args(["restart", "systemd-networkd"])
         .status()?;
 
     if status.success() {
-        println!("✓ Networking service restarted");
+        println!("✓ systemd-networkd service restarted");
     } else {
-        println!("Warning: systemctl restart networking failed");
+        println!("Warning: systemctl restart systemd-networkd failed");
     }
 
     Ok(())
