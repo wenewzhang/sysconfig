@@ -4,6 +4,8 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
+const NETWORK_DIR: &str = "/etc/systemd/network";
+
 fn get_network_interfaces() -> Vec<String> {
     let mut interfaces = Vec::new();
     if let Ok(entries) = fs::read_dir("/sys/class/net/") {
@@ -53,20 +55,20 @@ fn set_static_ip() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\nApplying network configuration...");
 
-    let status = Command::new("ifdown")
-        .args([iface, "--force"])
-        .status()?;
-    if !status.success() {
-        println!("Warning: Failed to ifdown iface: {}", iface);
-    }
+    // let status = Command::new("ifdown")
+    //     .args([iface, "--force"])
+    //     .status()?;
+    // if !status.success() {
+    //     println!("Warning: Failed to ifdown iface: {}", iface);
+    // }
 
-    // Clear existing IP addresses on the interface
-    let status = Command::new("ip")
-        .args(["addr", "flush", "dev", iface])
-        .status()?;
-    if !status.success() {
-        println!("Warning: Failed to clear old IP address");
-    }
+    // // Clear existing IP addresses on the interface
+    // let status = Command::new("ip")
+    //     .args(["addr", "flush", "dev", iface])
+    //     .status()?;
+    // if !status.success() {
+    //     println!("Warning: Failed to clear old IP address");
+    // }
 
     // // Add new IP
     // let cidr = format!("{}/{}", ip, mask);
@@ -120,6 +122,11 @@ fn set_static_ip() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Gateway: {}", gateway);
     if !dns.is_empty() {
         println!("  DNS: {}", dns);
+    }
+
+    let dhcp_file = format!("{}/10-dhcp.network", NETWORK_DIR);
+    if Path::new(&dhcp_file).exists() {
+        fs::remove_file(&dhcp_file)?;
     }
 
     persist_systemd_networkd(iface, &ip, &mask, &gateway, &dns)?;
@@ -219,11 +226,10 @@ fn persist_systemd_networkd(
     gateway: &str,
     _dns: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let network_dir = "/etc/systemd/network";
-    let network_file = format!("{}/10-{}.network", network_dir, iface);
+    let network_file = format!("{}/10-{}.network", NETWORK_DIR, iface);
 
     // 1. Ensure /etc/systemd/network exists
-    fs::create_dir_all(network_dir)?;
+    fs::create_dir_all(NETWORK_DIR)?;
 
     // 2. Build systemd-networkd configuration content
     let content = format!(
