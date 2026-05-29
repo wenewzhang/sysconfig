@@ -54,68 +54,6 @@ fn set_static_ip() -> Result<(), Box<dyn std::error::Error>> {
     let dns = gateway.clone();
 
     println!("\nApplying network configuration...");
-
-    // let status = Command::new("ifdown")
-    //     .args([iface, "--force"])
-    //     .status()?;
-    // if !status.success() {
-    //     println!("Warning: Failed to ifdown iface: {}", iface);
-    // }
-
-    // // Clear existing IP addresses on the interface
-    // let status = Command::new("ip")
-    //     .args(["addr", "flush", "dev", iface])
-    //     .status()?;
-    // if !status.success() {
-    //     println!("Warning: Failed to clear old IP address");
-    // }
-
-    // // Add new IP
-    // let cidr = format!("{}/{}", ip, mask);
-    // let status = Command::new("ip")
-    //     .args(["addr", "add", &cidr, "dev", iface])
-    //     .status()?;
-    // if !status.success() {
-    //     println!("Error: Failed to set IP address");
-    //     return Ok(());
-    // }
-
-    // Bring interface up
-    // let _ = Command::new("ip")
-    //     .args(["link", "set", iface, "up"])
-    //     .status();
-
-    // // Add default route
-    // let status = Command::new("ip")
-    //     .args(["route", "add", "default", "via", &gateway])
-    //     .status();
-    // if let Ok(st) = status {
-    //     if !st.success() {
-    //         // Try replacing existing default route
-    //         let _ = Command::new("ip")
-    //             .args(["route", "replace", "default", "via", &gateway])
-    //             .status();
-    //     }
-    // }
-
-    // // Set DNS (if provided)
-    // if !dns.is_empty() {
-    //     let resolv_entry = format!("nameserver {}\n", dns);
-    //     if let Ok(mut existing) = fs::read_to_string("/etc/resolv.conf") {
-    //         // Remove old nameserver lines for this interface (simple handling)
-    //         existing = existing
-    //             .lines()
-    //             .filter(|line| !line.trim().starts_with("nameserver"))
-    //             .collect::<Vec<_>>()
-    //             .join("\n");
-    //         existing.push('\n');
-    //         existing.push_str(&resolv_entry);
-    //         let _ = fs::write("/etc/resolv.conf", existing);
-    //     } else {
-    //         let _ = fs::write("/etc/resolv.conf", resolv_entry);
-    //     }
-    // }
-
     println!("\n✓ Network configuration applied:");
     println!("  Interface: {}", iface);
     println!("  IP: {}/{}", ip, mask);
@@ -392,6 +330,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Please run with sudo or configure passwordless sudo\n");
     }
 
+    let version = fs::read_to_string("/.data/.version")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|_| "Unknown".to_string());
+
     loop {
         let _ = term.clear_screen();
 
@@ -405,8 +347,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "Exit(Login root by: su -)",
         ];
 
+        let prompt = format!("=== System Management Tool [v{}] ===", version);
         let selection = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("=== System Management Tool ===")
+            .with_prompt(&prompt)
             .items(&options)
             .default(0)
             .interact()?;
