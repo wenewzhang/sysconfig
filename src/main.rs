@@ -347,7 +347,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "Exit(Login root by: su -)",
         ];
 
-        let prompt = format!("=== System Management Tool [v{}] ===", version);
+        let prompt = format!("=== System Management Tool [{}] ===", version);
         let selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt(&prompt)
             .items(&options)
